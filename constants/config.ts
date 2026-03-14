@@ -1,0 +1,23 @@
+export const Config = {
+  GOOGLE_MAPS_API_KEY: 'YOUR_GOOGLE_MAPS_API_KEY',
+  STRIPE_PUBLISHABLE_KEY: 'YOUR_STRIPE_PUBLISHABLE_KEY',
+  PAYPAL_CLIENT_ID: 'YOUR_PAYPAL_CLIENT_ID',
+  IDNOW_COMPANY_ID: 'YOUR_IDNOW_COMPANY_ID',
+  API_BASE_URL: 'https://api.parkplatz.example.com/v1',
+  DEFAULT_LOCATION: {
+    latitude: 52.5200,
+    longitude: 13.4050,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  },
+  DEFAULT_SEARCH_RADIUS_KM: 5,
+  MAX_SEARCH_RADIUS_KM: 50,
+  MIN_SEARCH_RADIUS_KM: 0.5,
+  SMS_CODE_LENGTH: 6,
+  SMS_RESEND_COOLDOWN_SECONDS: 60,
+  MAX_PARKING_PHOTOS: 10,
+  MAX_DOCUMENT_SIZE_MB: 10,
+  SUPPORTED_DOCUMENT_TYPES: ['application/pdf', 'image/jpeg', 'image/png'],
+  CURRENCY: 'EUR',
+  LOCALE: 'de-DE',
+};
