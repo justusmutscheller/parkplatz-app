@@ -5,7 +5,7 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/node_modules/react-i18next';
 import { Button, Card } from '@/components/common';
 import {
   Colors,

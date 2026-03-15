@@ -9,7 +9,7 @@ import {
   Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/node_modules/react-i18next';
 import { Button, Input } from '@/components/common';
 import { useAuthStore } from '@/stores/authStore';
 import { Colors, FontSize, FontWeight, Spacing } from '@/constants/theme';

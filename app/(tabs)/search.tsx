@@ -9,7 +9,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/node_modules/react-i18next';
 import { useRouter } from 'expo-router';
 import { mapsService } from '@/services/maps';
 import type { PlacePrediction } from '@/services/maps';

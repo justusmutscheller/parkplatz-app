@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/node_modules/react-i18next';
 import type { ParkingSearchResult } from '@/types';
 import { useParkingStore } from '@/stores/parkingStore';
 import { Config } from '@/constants/config';
