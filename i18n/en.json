@@ -213,6 +213,12 @@
     "more": "more",
     "pricingTitle": "Pricing",
     "pricingOptions": "Pricing options",
+    "pricing": {
+      "hour": "Price per hour",
+      "day": "Price per day",
+      "week": "Price per week",
+      "month": "Price per month"
+    },
     "price": "Price",
     "addPricingOption": "Add pricing option",
     "availability": "Availability",
