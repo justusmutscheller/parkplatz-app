@@ -1,3 +1,7 @@
+/**
+ * Native (iOS/Android): Echte Marker von react-native-maps.
+ * Wird nur auf nativen Plattformen geladen.
+ */
 import React from 'react';
 import { Marker } from 'react-native-maps';
 import type { ParkingSearchResult } from '@/types';

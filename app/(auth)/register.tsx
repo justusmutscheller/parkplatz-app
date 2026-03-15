@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '@/node_modules/react-i18next';
@@ -17,7 +18,7 @@ import { Button, Input } from '@/components/common';
 import { useAuthStore } from '@/stores/authStore';
 import { registrationSchema } from '@/utils/validation';
 import type { RegistrationData } from '@/types';
-import { Colors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '@/constants/theme';
 
 type FormData = {
   firstName: string;
@@ -41,7 +42,8 @@ type FormData = {
 };
 
 export default function RegisterScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language;
   const router = useRouter();
   const { phone, setPhone, sendSmsCode, setPendingRegistration } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,12 +123,28 @@ export default function RegisterScreen() {
         style={styles.keyboardView}
       >
         <View style={styles.header}>
-          <Pressable
-            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backText}>← {t('common.back')}</Text>
-          </Pressable>
+          <View style={styles.headerTopRow}>
+            <Pressable
+              style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backText}>← {t('common.back')}</Text>
+            </Pressable>
+            <View style={styles.langRow}>
+              <Pressable
+                style={[styles.langButton, currentLang === 'de' && styles.langButtonActive]}
+                onPress={() => i18n.changeLanguage('de')}
+              >
+                <Text style={[styles.langButtonText, currentLang === 'de' && styles.langButtonTextActive]}>DE</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.langButton, currentLang === 'en' && styles.langButtonActive]}
+                onPress={() => i18n.changeLanguage('en')}
+              >
+                <Text style={[styles.langButtonText, currentLang === 'en' && styles.langButtonTextActive]}>EN</Text>
+              </Pressable>
+            </View>
+          </View>
           <Text style={styles.title}>{t('auth.createAccount')}</Text>
         </View>
 
@@ -174,15 +192,87 @@ export default function RegisterScreen() {
           <Controller
             control={control}
             name="dateOfBirth"
-            render={({ field: { onChange, value } }) => (
-              <Input
-                label={t('auth.dateOfBirth')}
-                value={value}
-                onChangeText={onChange}
-                placeholder="DD.MM.YYYY"
-                error={errors.dateOfBirth?.message}
-              />
-            )}
+            render={({ field: { onChange } }) => {
+              const [dobDay, setDobDay] = useState('');
+              const [dobMonth, setDobMonth] = useState('');
+              const [dobYear, setDobYear] = useState('');
+
+              const days = useMemo(() => Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')), []);
+              const months = useMemo(() => [
+                { value: '01', label: 'Januar' },
+                { value: '02', label: 'Februar' },
+                { value: '03', label: 'März' },
+                { value: '04', label: 'April' },
+                { value: '05', label: 'Mai' },
+                { value: '06', label: 'Juni' },
+                { value: '07', label: 'Juli' },
+                { value: '08', label: 'August' },
+                { value: '09', label: 'September' },
+                { value: '10', label: 'Oktober' },
+                { value: '11', label: 'November' },
+                { value: '12', label: 'Dezember' },
+              ], []);
+
+              const updateDob = (day: string, month: string, year: string) => {
+                if (day && month && year.length === 4) {
+                  onChange(`${day}.${month}.${year}`);
+                }
+              };
+
+              return (
+                <View>
+                  <Text style={styles.dobLabel}>{t('auth.dateOfBirth')}</Text>
+                  <View style={styles.dobRow}>
+                    <View style={styles.dobPickerWrapper}>
+                      <Text style={styles.dobPickerLabel}>Tag</Text>
+                      <ScrollView style={styles.dobScrollPicker} nestedScrollEnabled>
+                        {days.map((d) => (
+                          <Pressable
+                            key={d}
+                            style={[styles.dobOption, dobDay === d && styles.dobOptionSelected]}
+                            onPress={() => { setDobDay(d); updateDob(d, dobMonth, dobYear); }}
+                          >
+                            <Text style={[styles.dobOptionText, dobDay === d && styles.dobOptionTextSelected]}>{d}</Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                    <View style={styles.dobPickerWrapper}>
+                      <Text style={styles.dobPickerLabel}>Monat</Text>
+                      <ScrollView style={styles.dobScrollPicker} nestedScrollEnabled>
+                        {months.map((m) => (
+                          <Pressable
+                            key={m.value}
+                            style={[styles.dobOption, dobMonth === m.value && styles.dobOptionSelected]}
+                            onPress={() => { setDobMonth(m.value); updateDob(dobDay, m.value, dobYear); }}
+                          >
+                            <Text style={[styles.dobOptionText, dobMonth === m.value && styles.dobOptionTextSelected]}>{m.label}</Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                    <View style={styles.dobYearWrapper}>
+                      <Text style={styles.dobPickerLabel}>Jahr</Text>
+                      <TextInput
+                        style={styles.dobYearInput}
+                        value={dobYear}
+                        onChangeText={(text) => {
+                          const digits = text.replace(/\D/g, '').slice(0, 4);
+                          setDobYear(digits);
+                          updateDob(dobDay, dobMonth, digits);
+                        }}
+                        placeholder="JJJJ"
+                        keyboardType="number-pad"
+                        maxLength={4}
+                      />
+                    </View>
+                  </View>
+                  {errors.dateOfBirth?.message ? (
+                    <Text style={styles.dobError}>{errors.dateOfBirth.message}</Text>
+                  ) : null}
+                </View>
+              );
+            }}
           />
           <Controller
             control={control}
@@ -412,7 +502,6 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: 'flex-start',
     padding: Spacing.sm,
-    marginBottom: Spacing.md,
   },
   backButtonPressed: {
     opacity: 0.7,
@@ -482,7 +571,99 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: FontWeight.medium as unknown as '500',
   },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  langRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  langButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  langButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  langButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium as unknown as '500',
+    color: Colors.text,
+  },
+  langButtonTextActive: {
+    color: Colors.white,
+  },
   submitButton: {
     marginTop: Spacing.xxl,
+  },
+  dobLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium as unknown as '500',
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  dobRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  dobPickerWrapper: {
+    flex: 1,
+  },
+  dobYearWrapper: {
+    flex: 1,
+  },
+  dobPickerLabel: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
+  },
+  dobScrollPicker: {
+    maxHeight: 120,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    backgroundColor: Colors.surface,
+  },
+  dobOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  dobOptionSelected: {
+    backgroundColor: Colors.primaryLight,
+  },
+  dobOptionText: {
+    fontSize: FontSize.md,
+    color: Colors.text,
+  },
+  dobOptionTextSelected: {
+    color: Colors.primary,
+    fontWeight: FontWeight.semibold as unknown as '600',
+  },
+  dobYearInput: {
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    fontSize: FontSize.md,
+    color: Colors.text,
+    backgroundColor: Colors.surface,
+    textAlign: 'center',
+  },
+  dobError: {
+    fontSize: FontSize.sm,
+    color: Colors.error,
+    marginTop: Spacing.xs,
   },
 });

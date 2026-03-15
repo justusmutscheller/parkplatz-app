@@ -20,26 +20,44 @@ import {
 } from '@/constants/theme';
 import { useParkingStore } from '@/stores/parkingStore';
 import { useBookingStore } from '@/stores/bookingStore';
+import { useAuthStore } from '@/stores/authStore';
 import { Button, Input, Divider, LoadingOverlay } from '@/components/common';
 import { SpotSelector } from '@/components/parking';
 import type { PaymentMethod } from '@/types';
 
 type BookingStep = 1 | 2 | 3;
 
-const PAYMENT_OPTIONS: { id: PaymentMethod | 'apple_pay'; label: string; icon: string }[] = [
-  { id: 'stripe', label: 'Kreditkarte / SEPA', icon: '💳' },
-  { id: 'paypal', label: 'PayPal', icon: '🅿️' },
-  { id: 'apple_pay', label: 'Apple Pay / Google Pay', icon: '📱' },
-];
-
 function formatPrice(price: number): string {
   return price.toFixed(2).replace('.', ',');
 }
 
 function parseDateTimeToISO(date: string, time: string): string {
-  const [day, month, year] = date.split('.');
+  const [day, month, year] = date.split('/');
   if (!day || !month || !year) return new Date().toISOString();
   return new Date(`${year}-${month}-${day}T${time || '00:00'}:00`).toISOString();
+}
+
+function getTodayFormatted(): string {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const yyyy = now.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function getCurrentTime(): string {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  return `${hh}:${min}`;
+}
+
+function getTimePlusTwoHours(): string {
+  const now = new Date();
+  now.setHours(now.getHours() + 2);
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  return `${hh}:${min}`;
 }
 
 function calculateHours(startISO: string, endISO: string): number {
@@ -53,14 +71,15 @@ export default function BookingScreen() {
   const { t } = useTranslation();
   const { parkingSpots, searchNearby } = useParkingStore();
   const { createBooking, isLoading: bookingLoading } = useBookingStore();
+  const user = useAuthStore((s) => s.user);
+  const defaultPayment = user?.savedPaymentMethods?.find((pm) => pm.isDefault);
 
   const [step, setStep] = useState<BookingStep>(1);
-  const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [startDate, setStartDate] = useState(getTodayFormatted);
+  const [startTime, setStartTime] = useState(getCurrentTime);
+  const [endDate, setEndDate] = useState(getTodayFormatted);
+  const [endTime, setEndTime] = useState(getTimePlusTwoHours);
   const [selectedSpotId, setSelectedSpotId] = useState<string | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | 'apple_pay'>('stripe');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
 
@@ -88,7 +107,7 @@ export default function BookingScreen() {
     if (!parking || !selectedSpotId || !startISO || !endISO) return;
 
     const paymentMethod: PaymentMethod =
-      selectedPayment === 'apple_pay' ? 'stripe' : selectedPayment;
+      defaultPayment?.type === 'paypal' ? 'paypal' : 'stripe';
 
     try {
       const booking = await createBooking({
@@ -103,7 +122,7 @@ export default function BookingScreen() {
     } catch {
       // Error handled by store
     }
-  }, [parking, selectedSpotId, startISO, endISO, selectedPayment, createBooking]);
+  }, [parking, selectedSpotId, startISO, endISO, defaultPayment, createBooking]);
 
   if (!parking) {
     return (
@@ -202,7 +221,12 @@ export default function BookingScreen() {
         >
           <Text style={styles.headerBackText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('booking.newBooking')}</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>{t('booking.newBooking')}</Text>
+          <Text style={styles.headerAddress} numberOfLines={1}>
+            {parking.location.address}, {parking.location.postalCode} {parking.location.city}
+          </Text>
+        </View>
         <View style={styles.headerRight} />
       </View>
 
@@ -255,7 +279,7 @@ export default function BookingScreen() {
                 label="Startdatum"
                 value={startDate}
                 onChangeText={setStartDate}
-                placeholder="TT.MM.JJJJ"
+                placeholder="TT/MM/JJJJ"
                 keyboardType="number-pad"
               />
               <Input
@@ -272,7 +296,7 @@ export default function BookingScreen() {
                 label="Enddatum"
                 value={endDate}
                 onChangeText={setEndDate}
-                placeholder="TT.MM.JJJJ"
+                placeholder="TT/MM/JJJJ"
                 keyboardType="number-pad"
               />
               <Input
@@ -317,12 +341,10 @@ export default function BookingScreen() {
           </View>
         )}
 
-        {/* Step 3: Payment & Confirmation */}
+        {/* Step 3: Summary & Confirm */}
         {step === 3 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>
-              {t('booking.payment')} & {t('booking.confirm')}
-            </Text>
+            <Text style={styles.stepTitle}>Buchungsübersicht</Text>
 
             {/* Booking Summary Card */}
             <View style={styles.summaryCard}>
@@ -361,7 +383,7 @@ export default function BookingScreen() {
               <Divider spacing={Spacing.sm} />
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryTotalLabel}>
-                  {t('booking.totalPrice')}
+                  Geschätzter Preis
                 </Text>
                 <Text style={styles.summaryTotalValue}>
                   {formatPrice(estimatedPrice)} €
@@ -369,45 +391,31 @@ export default function BookingScreen() {
               </View>
             </View>
 
-            {/* Payment Method Selection */}
-            <Text style={styles.paymentSectionTitle}>
-              {t('booking.paymentMethod')}
-            </Text>
-            {PAYMENT_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.paymentOption,
-                  selectedPayment === option.id && styles.paymentOptionSelected,
-                ]}
-                onPress={() => setSelectedPayment(option.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.paymentIcon}>{option.icon}</Text>
-                <Text
-                  style={[
-                    styles.paymentLabel,
-                    selectedPayment === option.id &&
-                      styles.paymentLabelSelected,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-                <View
-                  style={[
-                    styles.radioOuter,
-                    selectedPayment === option.id && styles.radioOuterSelected,
-                  ]}
-                >
-                  {selectedPayment === option.id && (
-                    <View style={styles.radioInner} />
-                  )}
+            {/* Payment Info */}
+            <View style={styles.paymentInfoCard}>
+              <Text style={styles.paymentInfoTitle}>Zahlungsmethode</Text>
+              {defaultPayment ? (
+                <View style={styles.paymentInfoRow}>
+                  <Text style={styles.paymentInfoIcon}>{defaultPayment.icon}</Text>
+                  <Text style={styles.paymentInfoLabel}>{defaultPayment.label}</Text>
                 </View>
-              </TouchableOpacity>
-            ))}
+              ) : (
+                <Text style={styles.paymentInfoMissing}>
+                  Bitte hinterlege eine Zahlungsmethode in deinem Profil.
+                </Text>
+              )}
+            </View>
+
+            {/* Billing note */}
+            <View style={styles.billingNote}>
+              <Text style={styles.billingNoteIcon}>ℹ️</Text>
+              <Text style={styles.billingNoteText}>
+                Die Abrechnung erfolgt nach Ende der Parkzeit. Du zahlst nur die tatsächlich genutzte Dauer. Verlässt du den Parkplatz früher, wird der Preis entsprechend angepasst.
+              </Text>
+            </View>
 
             <Text style={styles.termsText}>
-              Mit der Buchung akzeptieren Sie unsere AGB
+              Mit der Buchung akzeptierst du unsere AGB und verpflichtest dich zur Zahlung nach Nutzungsende.
             </Text>
           </View>
         )}
@@ -430,12 +438,13 @@ export default function BookingScreen() {
             />
           ) : (
             <Button
-              title={`Jetzt bezahlen – ${formatPrice(estimatedPrice)} €`}
+              title={`Buchung bestätigen – ca. ${formatPrice(estimatedPrice)} €`}
               onPress={handleBooking}
               variant="primary"
               size="lg"
               fullWidth
               loading={bookingLoading}
+              disabled={!defaultPayment}
             />
           )}
         </View>
@@ -487,12 +496,19 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: FontWeight.bold,
   },
-  headerTitle: {
+  headerCenter: {
     flex: 1,
-    textAlign: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.text,
+  },
+  headerAddress: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   headerRight: {
     width: 40,
@@ -643,63 +659,65 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  paymentSectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
-    color: Colors.text,
-    marginBottom: Spacing.md,
-  },
-  paymentOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  paymentInfoCard: {
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderWidth: 2,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
     borderColor: Colors.border,
+    ...Shadow.sm,
   },
-  paymentOptionSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+  paymentInfoTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
   },
-  paymentIcon: {
+  paymentInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  paymentInfoIcon: {
     fontSize: FontSize.xl,
-    marginRight: Spacing.md,
   },
-  paymentLabel: {
-    flex: 1,
+  paymentInfoLabel: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.medium,
     color: Colors.text,
   },
-  paymentLabelSelected: {
-    color: Colors.primary,
+  paymentInfoMissing: {
+    fontSize: FontSize.sm,
+    color: Colors.error,
+    fontStyle: 'italic',
   },
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
+
+  billingNote: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primaryLight,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+    alignItems: 'flex-start',
   },
-  radioOuterSelected: {
-    borderColor: Colors.primary,
+  billingNoteIcon: {
+    fontSize: FontSize.lg,
+    marginTop: 2,
   },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.primary,
+  billingNoteText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.text,
+    lineHeight: 20,
   },
 
   termsText: {
     fontSize: FontSize.xs,
     color: Colors.textTertiary,
     textAlign: 'center',
-    marginTop: Spacing.lg,
+    marginTop: Spacing.sm,
     lineHeight: 18,
   },
 

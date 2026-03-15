@@ -16,6 +16,14 @@ export interface BusinessInfo {
   tradeRegisterNumber: string;
 }
 
+export type SavedPaymentMethod = {
+  id: string;
+  type: 'stripe' | 'paypal' | 'apple_pay';
+  label: string;
+  icon: string;
+  isDefault: boolean;
+};
+
 export interface User {
   id: string;
   phone: string;
@@ -30,6 +38,7 @@ export interface User {
   identityVerificationStatus: VerificationStatus;
   documentVerificationStatus: VerificationStatus;
   profileImageUrl?: string;
+  savedPaymentMethods: SavedPaymentMethod[];
   createdAt: string;
   updatedAt: string;
 }

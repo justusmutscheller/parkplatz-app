@@ -12,17 +12,18 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from '@/node_modules/react-i18next';
 import { Button, Input } from '@/components/common';
 import { useAuthStore } from '@/stores/authStore';
-import { Colors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '@/constants/theme';
 
 const COUNTRY_CODE = '+49';
 const GERMANY_FLAG = '🇩🇪';
 
 export default function LoginScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { phone, setPhone, sendSmsCode, isLoading } = useAuthStore();
   const [localPhone, setLocalPhone] = useState(phone || '');
   const [error, setError] = useState<string | null>(null);
+  const currentLang = i18n.language;
 
   const handleSendSmsCode = async () => {
     setError(null);
@@ -83,6 +84,21 @@ export default function LoginScreen() {
           >
             <Text style={styles.registerLinkText}>{t('auth.noAccountYet')}</Text>
           </Pressable>
+
+          <View style={styles.langRow}>
+            <Pressable
+              style={[styles.langButton, currentLang === 'de' && styles.langButtonActive]}
+              onPress={() => i18n.changeLanguage('de')}
+            >
+              <Text style={[styles.langButtonText, currentLang === 'de' && styles.langButtonTextActive]}>Deutsch</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.langButton, currentLang === 'en' && styles.langButtonActive]}
+              onPress={() => i18n.changeLanguage('en')}
+            >
+              <Text style={[styles.langButtonText, currentLang === 'en' && styles.langButtonTextActive]}>English</Text>
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -148,5 +164,30 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     color: Colors.primary,
     fontWeight: FontWeight.medium as unknown as '500',
+  },
+  langRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.xl,
+  },
+  langButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  langButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  langButtonText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium as unknown as '500',
+    color: Colors.text,
+  },
+  langButtonTextActive: {
+    color: Colors.white,
   },
 });

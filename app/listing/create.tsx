@@ -22,7 +22,9 @@ import {
   FontWeight,
   Shadow,
 } from '@/constants/theme';
+import { Config } from '@/constants/config';
 import { Button, Input, Card } from '@/components/common';
+import AddressMapPreview from '@/components/map/AddressMapPreview';
 import { useListingStore } from '@/stores/listingStore';
 import { useAuthStore } from '@/stores/authStore';
 import type {
@@ -56,22 +58,22 @@ const PRICING_UNITS: { key: PricingUnit; labelKey: string }[] = [
 ];
 
 const WEEKDAYS = [
-  'listing.weekday.monday',
-  'listing.weekday.tuesday',
-  'listing.weekday.wednesday',
-  'listing.weekday.thursday',
-  'listing.weekday.friday',
-  'listing.weekday.saturday',
-  'listing.weekday.sunday',
+  'Montag',
+  'Dienstag',
+  'Mittwoch',
+  'Donnerstag',
+  'Freitag',
+  'Samstag',
+  'Sonntag',
 ];
 
-const FEATURE_KEYS: { key: keyof Omit<ParkingFeatures, 'heightLimit' | 'widthLimit'>; labelKey: string }[] = [
-  { key: 'covered', labelKey: 'listing.feature.covered' },
-  { key: 'gated', labelKey: 'listing.feature.gated' },
-  { key: 'illuminated', labelKey: 'listing.feature.illuminated' },
-  { key: 'surveillance', labelKey: 'listing.feature.surveillance' },
-  { key: 'evCharging', labelKey: 'listing.feature.evCharging' },
-  { key: 'handicapAccessible', labelKey: 'listing.feature.handicapAccessible' },
+const FEATURE_KEYS: { key: keyof Omit<ParkingFeatures, 'heightLimit' | 'widthLimit'>; label: string }[] = [
+  { key: 'covered', label: 'Überdacht' },
+  { key: 'gated', label: 'Beschrankt' },
+  { key: 'illuminated', label: 'Beleuchtet' },
+  { key: 'surveillance', label: 'Bewacht' },
+  { key: 'evCharging', label: 'E-Ladestation' },
+  { key: 'handicapAccessible', label: 'Barrierefrei' },
 ];
 
 export default function CreateListingScreen() {
@@ -106,15 +108,24 @@ export default function CreateListingScreen() {
   const [pricingOptions, setPricingOptions] = useState<
     { unit: PricingUnit; price: string }[]
   >([{ unit: 'hour', price: '' }]);
-  const [alwaysAvailable, setAlwaysAvailable] = useState(true);
+  const [alwaysAvailable, setAlwaysAvailable] = useState(false);
   const [selectedDays, setSelectedDays] = useState<boolean[]>(
-    Array(7).fill(false)
+    Array(7).fill(true)
   );
   const [dayTimes, setDayTimes] = useState<{ from: string; to: string }[]>(
     Array(7)
       .fill(null)
       .map(() => ({ from: '08:00', to: '18:00' }))
   );
+
+  // Geocoded coordinates from map preview
+  const [geocodedLat, setGeocodedLat] = useState<number | null>(null);
+  const [geocodedLng, setGeocodedLng] = useState<number | null>(null);
+
+  const handleCoordinatesFound = useCallback((lat: number, lng: number) => {
+    setGeocodedLat(lat);
+    setGeocodedLng(lng);
+  }, []);
 
   // Step 5
   const [photos, setPhotos] = useState<string[]>([]);
@@ -283,8 +294,8 @@ export default function CreateListingScreen() {
         description,
         category: category || 'lot',
         location: {
-          latitude: 52.52,
-          longitude: 13.405,
+          latitude: geocodedLat ?? Config.DEFAULT_LOCATION.latitude + (Math.random() - 0.5) * 0.008,
+          longitude: geocodedLng ?? Config.DEFAULT_LOCATION.longitude + (Math.random() - 0.5) * 0.008,
           address: `${street} ${houseNumber}`,
           city,
           postalCode,
@@ -297,16 +308,15 @@ export default function CreateListingScreen() {
         features: featuresData,
         photos,
       });
-      Alert.alert(
-        t('listing.publishSuccess'),
-        t('listing.publishSuccessMessage'),
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(tabs)/my-listings'),
-          },
-        ]
-      );
+      if (Platform.OS === 'web') {
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert(
+          t('listing.publishSuccess'),
+          'Parkplatz hinzugefügt',
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+        );
+      }
     } catch {
       Alert.alert(t('common.error'), t('listing.publishError'));
     }
@@ -330,6 +340,8 @@ export default function CreateListingScreen() {
     postalCode,
     country,
     photos,
+    geocodedLat,
+    geocodedLng,
     createListing,
     t,
   ]);
@@ -409,19 +421,16 @@ export default function CreateListingScreen() {
         placeholder="Deutschland"
       />
 
-      <Pressable style={styles.mapButton} onPress={() => {}}>
-        <Text style={styles.mapButtonText}>
-          {t('listing.showOnMap')}
-        </Text>
-      </Pressable>
-
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapPlaceholderEmoji}>📍</Text>
-        <Text style={styles.mapPlaceholderText}>
-          {t('listing.mapPlaceholder')}
-        </Text>
-      </View>
-
+      <Text style={styles.sectionLabel}>{t('listing.showOnMap')}</Text>
+      <AddressMapPreview
+        street={street}
+        houseNumber={houseNumber}
+        postalCode={postalCode}
+        city={city}
+        country={country}
+        onCoordinatesFound={handleCoordinatesFound}
+        height={220}
+      />
       <Text style={styles.noteText}>{t('listing.pinNote')}</Text>
 
       <Button
@@ -693,7 +702,7 @@ export default function CreateListingScreen() {
                     <Text style={styles.checkmark}>✓</Text>
                   )}
                 </View>
-                <Text style={styles.dayName}>{t(dayKey)}</Text>
+                <Text style={styles.dayName}>{dayKey}</Text>
               </Pressable>
               {selectedDays[index] && (
                 <View style={styles.timeInputs}>
@@ -739,7 +748,7 @@ export default function CreateListingScreen() {
 
       <Text style={styles.sectionLabel}>{t('listing.photos')}</Text>
       <Text style={styles.photoCount}>
-        {t('listing.photoCount', { current: photos.length, max: 10 })}
+        {photos.length}/10 Uploads
       </Text>
       <View style={styles.photoGrid}>
         {photos.map((uri, index) => (
@@ -769,7 +778,7 @@ export default function CreateListingScreen() {
       <Text style={styles.sectionLabel}>{t('listing.featuresLabel')}</Text>
       {FEATURE_KEYS.map((feat) => (
         <View key={feat.key} style={styles.switchRow}>
-          <Text style={styles.switchLabel}>{t(feat.labelKey)}</Text>
+          <Text style={styles.switchLabel}>{feat.label}</Text>
           <Switch
             value={features[feat.key]}
             onValueChange={() => toggleFeature(feat.key)}

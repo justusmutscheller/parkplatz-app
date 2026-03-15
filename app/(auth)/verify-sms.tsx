@@ -21,7 +21,7 @@ const RESEND_COOLDOWN = 60;
 export default function VerifySmsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { phone, verifySmsCode, sendSmsCode, user, isLoading, pendingRegistration, completePendingRegistration } = useAuthStore();
+  const { phone, verifySmsCode, sendSmsCode, isLoading, pendingRegistration, completePendingRegistration, loginWithPhone } = useAuthStore();
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [countdown, setCountdown] = useState(RESEND_COOLDOWN);
   const [error, setError] = useState<string | null>(null);
@@ -70,10 +70,9 @@ export default function VerifySmsScreen() {
       if (pendingRegistration) {
         completePendingRegistration();
         router.replace('/(tabs)');
-      } else if (user) {
-        router.replace('/(tabs)');
       } else {
-        router.replace('/(auth)/register');
+        loginWithPhone();
+        router.replace('/(tabs)');
       }
     } else {
       setError(t('auth.invalidCode'));
@@ -110,6 +109,10 @@ export default function VerifySmsScreen() {
           <Text style={styles.subtitle}>
             {t('auth.codeSentTo', { phone: phone || '' })}
           </Text>
+
+          <View style={styles.demoHint}>
+            <Text style={styles.demoHintText}>{t('auth.demoHint')}</Text>
+          </View>
 
           <View style={styles.codeInputs}>
             {code.map((digit, index) => (
@@ -198,7 +201,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: FontSize.md,
     color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+  },
+  demoHint: {
+    backgroundColor: Colors.primary + '15',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
     marginBottom: Spacing.xl,
+  },
+  demoHintText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    textAlign: 'center',
+    fontWeight: FontWeight.medium as unknown as '500',
   },
   codeInputs: {
     flexDirection: 'row',

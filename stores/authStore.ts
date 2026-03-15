@@ -19,6 +19,10 @@ const MOCK_USER: User = {
   accountType: 'private',
   identityVerificationStatus: 'verified',
   documentVerificationStatus: 'verified',
+  savedPaymentMethods: [
+    { id: 'pm-1', type: 'stripe', label: 'Visa ****4242', icon: '💳', isDefault: true },
+    { id: 'pm-2', type: 'paypal', label: 'PayPal max@example.de', icon: '🅿️', isDefault: false },
+  ],
   createdAt: '2024-01-15T10:00:00Z',
   updatedAt: '2024-01-15T10:00:00Z',
 };
@@ -40,6 +44,7 @@ interface AuthActions {
   setPendingRegistration: (data: RegistrationData) => void;
   completePendingRegistration: () => void;
   register: (data: RegistrationData) => void;
+  loginWithPhone: () => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
 }
@@ -89,8 +94,9 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       ...MOCK_USER,
       ...data,
       id: 'user-' + Date.now(),
-      identityVerificationStatus: 'none',
-      documentVerificationStatus: 'none',
+      identityVerificationStatus: 'verified',
+      documentVerificationStatus: 'verified',
+      savedPaymentMethods: [],
       createdAt: now,
       updatedAt: now,
     };
@@ -100,6 +106,16 @@ export const useAuthStore = create<AuthState & AuthActions>((set, get) => ({
       smsCodeSent: false,
       smsVerified: false,
       pendingRegistration: null,
+    });
+  },
+
+  loginWithPhone: () => {
+    const { phone } = get();
+    set({
+      user: { ...MOCK_USER, phone },
+      isAuthenticated: true,
+      smsCodeSent: false,
+      smsVerified: false,
     });
   },
 

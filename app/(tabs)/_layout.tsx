@@ -30,8 +30,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: t('tabs.search'),
-          tabBarIcon: () => <Text style={{ fontSize: 22 }}>🔍</Text>,
+          href: null,
         }}
       />
       <Tabs.Screen

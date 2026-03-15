@@ -133,6 +133,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius.lg,
     borderTopRightRadius: BorderRadius.lg,
     ...Shadow.lg,
+    zIndex: 1001,
+    elevation: 1001,
   },
   closeButton: {
     position: 'absolute',

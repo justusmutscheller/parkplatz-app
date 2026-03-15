@@ -5,8 +5,8 @@ export const Config = {
   IDNOW_COMPANY_ID: process.env.EXPO_PUBLIC_IDNOW_COMPANY_ID ?? '',
   API_BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://api.parkplatz.example.com/v1',
   DEFAULT_LOCATION: {
-    latitude: 52.5200,
-    longitude: 13.4050,
+    latitude: 49.4875,
+    longitude: 8.4660,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   },
